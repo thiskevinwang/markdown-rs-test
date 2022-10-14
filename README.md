@@ -11,6 +11,8 @@ serializable to JSON, via `serde`
 
 This will process `./src/input.mdx` and output a serializable JSON blob like
 
+> **Warning** — `input.mdx` is _huge_ so `cargo run .` may take about 8 or more seconds.
+
 ```jsonc
 {
   "children": [
