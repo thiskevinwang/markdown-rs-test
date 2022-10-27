@@ -4,30 +4,46 @@
 mod wrappers;
 use wrappers::MyNode;
 
+use serde::Deserialize;
 use serde_json::json;
+use yaml_front_matter::YamlFrontMatter;
+
+// Debug allows the struct to be printed
+#[derive(Deserialize, Debug)]
+struct Metadata {
+    page_title: String,
+    description: String,
+}
 
 fn main() -> Result<(), String> {
     use std::env;
     use std::fs;
 
-    // /Users/kevin/repos/markdown-rs-test
     let working_dir = env::current_dir().unwrap();
-    // println!("working_dir: {:?}", working_dir);
     let file_path = working_dir.join("src/input.mdx");
+
+    // load string contents of MDX
     let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
 
-    let mdast = markdown::to_mdast(&contents.to_string(), &markdown::ParseOptions::default())?;
+    // split contents into YAML frontmatter and actual content
+    let result = YamlFrontMatter::parse::<Metadata>(contents.as_str()).unwrap();
+
+    println!("{:?}", result.metadata);
+
+    // parse into and AST and do some json serialization
+    let mdast = markdown::to_mdast(&result.content, &markdown::ParseOptions::default())?;
     let node: MyNode = mdast.into();
 
     let obj = json!(node);
-    // println!("{}", serde_json::to_string_pretty(&obj).unwrap());
 
     let output_file_path = working_dir.join("src/output.json");
-    fs::write(
-        output_file_path,
-        serde_json::to_string_pretty(&obj).unwrap(),
-    )
-    .unwrap();
+    let output_json = serde_json::to_string_pretty(&obj).unwrap();
+
+    // Output to local file
+    fs::write(output_file_path, output_json.clone()).unwrap();
+
+    // Output to stdout
+    println!("{}", output_json.clone());
 
     Ok(())
 }
